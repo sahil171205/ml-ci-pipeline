@@ -1,0 +1,48 @@
+
+name: ML CI Pipeline
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate Python Scripts
+        run: |
+          python -m py_compile train.py
+          python -m py_compile test_train.py
+
+      - name: Train ML Model
+        run: python train.py
+
+      - name: Run Tests and Generate Report
+        run: |
+          pytest test_train.py -v --html=report.html --self-contained-html
+
+      - name: Check Documentation
+        run: test -s README.md
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-test-report
+          path: report.html
+          if-no-files-found: warn
